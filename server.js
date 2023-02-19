@@ -21,13 +21,20 @@ if (NODE_ENV === 'test') {
 
 const app = express();
 
-app.use(cors());
+if (process.env.NODE_ENV !== 'production') {
+  app.use(
+    cors({
+      origin: ['http://localhost:3000'],
+      credentials: true,
+    })
+  );
+}
 app.use(helmet());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(
   session({
-    secret: 'asd532',
+    secret: process.env.SECRET,
     store: MongoStore.create({
       mongoUrl: dbUri,
       mongoOptions: {
@@ -35,6 +42,9 @@ app.use(
         useUnifiedTopology: true,
       },
       collectionName: 'sessions',
+      cookie: {
+        secure: process.env.NODE_ENV == 'production',
+      },
     }),
     resave: false,
     saveUninitialized: false,
