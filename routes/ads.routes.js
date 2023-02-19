@@ -1,18 +1,18 @@
 const express = require('express');
 const router = express.Router();
 
-const AdsController = require('../controllers/ads.controller');
+const adsController = require('../controllers/ads.controller');
 
-router.get('/ads', AdsController.getAll);
+router.get('/ads', adsController.getAll);
 
-router.get('/ads/:id', AdsController.getById);
+router.get('/ads/:id', adsController.getById);
 
-router.get('/ads/search/:searchPhrase', AdsController.getBySearchPhrase);
+router.get('/ads/search/:searchPhrase', adsController.getBySearchPhrase);
 
-router.post('/ads', AdsController.create);
+router.post('/ads', adsController.create);
 
-router.put('/ads/:id', AdsController.edit);
+router.put('/ads/:id', adsController.edit);
 
-router.delete('/ads/:id', AdsController.delete);
+router.delete('/ads/:id', adsController.delete);
 
 module.exports = router;
