@@ -5,4 +5,5 @@ const authMiddleware = (req, res, next) => {
     res.status(401).send({ message: 'You are not authorized' });
   }
 };
+
 module.exports = authMiddleware;

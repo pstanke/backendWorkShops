@@ -1,18 +1,22 @@
-const User = require('../models/user.model');
+const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const sanitize = require('mongo-sanitize');
+const path = require('path');
+const User = require('../models/user.model');
+const getImageFileType = require('../utils/getImageFileType');
 
 exports.register = async (req, res) => {
   try {
     const sanitizedBody = sanitize(req.body);
-    const { login, password, avatar, phone } = sanitizedBody;
+    const { login, password, phone } = sanitizedBody;
+    const fileType = req.file ? await getImageFileType(req.file) : 'unknown';
     if (
       login &&
       typeof login === 'string' &&
       password &&
       typeof password === 'string' &&
-      avatar &&
-      typeof avatar === 'string' &&
+      req.file &&
+      ['image/png', 'image/jpeg', 'image/gif'].includes(fileType) &&
       phone &&
       typeof phone === 'string'
     ) {
@@ -23,12 +27,20 @@ exports.register = async (req, res) => {
       const user = await User.create({
         login,
         password: await bcrypt.hash(password, 10),
-        avatar,
+        avatar: req.file.filename,
         phone,
       });
       res.status(201).send({ message: user.login + '  created successfully' });
     } else {
-      res.status(400).json({ message: 'Bad request' });
+      if (req.file) {
+        const filePath = path.join(
+          __dirname,
+          '../public/uploads',
+          req.file.filename
+        );
+        fs.unlinkSync(filePath);
+      }
+      res.status(400).send({ message: 'Bad request' });
     }
   } catch (err) {
     res.status(500).json({ message: err.message });
