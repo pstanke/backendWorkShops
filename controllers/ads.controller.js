@@ -54,7 +54,7 @@ exports.create = async (req, res) => {
       date &&
       typeof date === 'string' &&
       price &&
-      typeof price === 'number' &&
+      typeof price === 'string' &&
       location &&
       typeof location === 'string' &&
       sellerInfo &&
@@ -62,7 +62,7 @@ exports.create = async (req, res) => {
       req.file &&
       ['image/png', 'image/jpeg', 'image/gif'].includes(fileType)
     ) {
-      const newAds = new Ads.create({
+      const newAds = new Ads({
         title,
         content,
         date,
@@ -85,20 +85,18 @@ exports.create = async (req, res) => {
       }
       res.status(400).send({ message: 'Bad request' });
     }
-  } catch (err) {
-    res.status(500).json({ message: err });
+  } catch (error) {
+    res.status(500).json(error);
   }
 };
 
 exports.edit = async (req, res) => {
   try {
-    const existingAds = await Ads.findById(req.param.id).populate('user');
-    if (!existingAds) {
-      res.status(404).json({ message: 'Ads not found' });
-    } else {
-      const sanitizedBody = sanitize(req.body);
-      const { title, content, date, newPhoto, price, location, sellerInfo } =
-        sanitizedBody;
+    const existingAds = await Ads.findById(req.params.id).populate('user');
+    const sanitizedBody = sanitize(req.body);
+    const { title, content, date, newPhoto, price, location, sellerInfo } =
+      sanitizedBody;
+    if (existingAds) {
       (existingAds.title = title),
         (existingAds.content = content),
         (existingAds.date = date),
@@ -121,6 +119,8 @@ exports.edit = async (req, res) => {
       }
       await existingAds.save();
       res.json(existingAds);
+    } else {
+      res.status(404).json({ message: 'Ads not found' });
     }
   } catch (err) {
     res.status(500).json({ message: err });
