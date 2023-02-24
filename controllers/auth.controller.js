@@ -62,10 +62,9 @@ exports.login = async (req, res) => {
         res.status(400).json({ message: 'Login or password are incorrect' });
       } else {
         if (bcrypt.compareSync(password, user.password)) {
-          req.session.user = {
-            id: user._id,
-            login: user.login,
-          };
+          const userId = user.id;
+          req.session.user = userId;
+          console.log(req.session.user);
           res
             .status(200)
             .send({ message: user.login + ' logged in successfully' });

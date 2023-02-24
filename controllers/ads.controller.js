@@ -3,6 +3,7 @@ const sanitize = require('mongo-sanitize');
 const path = require('path');
 
 const Ads = require('../models/ads.model');
+
 const getImageFileType = require('../utils/getImageFileType');
 
 exports.getAll = async (req, res) => {
@@ -44,7 +45,7 @@ exports.getBySearchPhrase = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     const sanitizedBody = sanitize(req.body);
-    const { title, content, date, price, location, sellerInfo } = sanitizedBody;
+    const { title, content, date, price, location } = sanitizedBody;
     const fileType = req.file ? await getImageFileType(req.file) : 'unknown';
     if (
       title &&
@@ -57,8 +58,6 @@ exports.create = async (req, res) => {
       typeof price === 'string' &&
       location &&
       typeof location === 'string' &&
-      sellerInfo &&
-      typeof sellerInfo === 'string' &&
       req.file &&
       ['image/png', 'image/jpeg', 'image/gif'].includes(fileType)
     ) {
@@ -69,7 +68,7 @@ exports.create = async (req, res) => {
         photo: req.file.filename,
         price,
         location,
-        sellerInfo,
+        user: req.session.user,
       });
       await newAds.save();
 
@@ -94,15 +93,14 @@ exports.edit = async (req, res) => {
   try {
     const existingAds = await Ads.findById(req.params.id).populate('user');
     const sanitizedBody = sanitize(req.body);
-    const { title, content, date, newPhoto, price, location, sellerInfo } =
-      sanitizedBody;
+    const { title, content, date, newPhoto, price, location } = sanitizedBody;
     if (existingAds) {
       (existingAds.title = title),
         (existingAds.content = content),
         (existingAds.date = date),
         (existingAds.price = price),
-        (existingAds.location = location),
-        (existingAds.sellerInfo = sellerInfo);
+        (existingAds.location = location);
+
       if (newPhoto) {
         const fileType = await getImageFileType(newPhoto);
         if (['image/png', 'image/jpeg', 'image/gif'].includes(fileType)) {
