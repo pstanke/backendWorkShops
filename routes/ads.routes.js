@@ -6,15 +6,15 @@ const authMiddleware = require('../utils/authMiddleware');
 
 router.post(
   '/ads',
-  imageUpload.single('photo'),
   authMiddleware,
+  imageUpload.single('photo'),
   adsController.create
 );
 
 router.put(
   '/ads/:id',
-  imageUpload.single('photo'),
   authMiddleware,
+  imageUpload.single('photo'),
   adsController.edit
 );
 
