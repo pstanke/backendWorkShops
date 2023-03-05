@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+
 const mongoose = require('mongoose');
 const path = require('path');
 const helmet = require('helmet');
@@ -58,7 +60,7 @@ app.use('/api', adsRoutes);
 app.use('/api/auth', authRoutes);
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '/client/build'));
+  res.sendFile(path.join(__dirname, '/client/build/index.html'));
 });
 
 app.use((req, res) => {

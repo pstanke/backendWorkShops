@@ -16,7 +16,7 @@ exports.getAll = async (req, res) => {
 
 exports.getById = async (req, res) => {
   try {
-    const ads = await Ads.findById(req.param.id).populate('user');
+    const ads = await Ads.findById(req.params.id).populate('user');
     if (!ads) {
       res.status(404).json({ message: 'Ads not found' });
     } else {
@@ -29,8 +29,9 @@ exports.getById = async (req, res) => {
 
 exports.getBySearchPhrase = async (req, res) => {
   try {
+    const searchPhrase = req.params.searchPhrase.toLowerCase();
     const matchingAds = await Ads.find({
-      title: { $regex: req.params.searchPhrase },
+      title: { $regex: new RegExp(searchPhrase, 'i') },
     }).populate('user');
     if (!matchingAds) {
       res.status(404).json({ message: 'Ads not found' });
@@ -38,7 +39,7 @@ exports.getBySearchPhrase = async (req, res) => {
       res.json(matchingAds);
     }
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -50,8 +51,10 @@ exports.create = async (req, res) => {
     if (
       title &&
       typeof title === 'string' &&
+      title.length < 50 &&
       content &&
       typeof content === 'string' &&
+      content.length < 1000 &&
       date &&
       typeof date === 'string' &&
       price &&
@@ -68,24 +71,29 @@ exports.create = async (req, res) => {
         photo: req.file.filename,
         price,
         location,
-        user: req.session.user,
+        user: req.session.user._id,
       });
       await newAds.save();
 
       res.json({ message: 'OK' });
     } else {
-      if (req.file) {
-        const filePath = path.join(
-          __dirname,
-          '../public/uploads',
-          req.file.filename
-        );
-        fs.unlinkSync(filePath);
-      }
-      res.status(400).send({ message: 'Bad request' });
+      const filePath = path.join(
+        __dirname,
+        '../public/uploads',
+        req.file.filename
+      );
+      fs.unlinkSync(filePath);
+
+      return res.status(400).send({ message: 'Bad request' });
     }
   } catch (error) {
-    res.status(500).json(error);
+    const filePath = path.join(
+      __dirname,
+      '../public/uploads',
+      req.file.filename
+    );
+    fs.unlinkSync(filePath);
+    res.status(500).json(error.message);
   }
 };
 
@@ -93,7 +101,8 @@ exports.edit = async (req, res) => {
   try {
     const existingAds = await Ads.findById(req.params.id).populate('user');
     const sanitizedBody = sanitize(req.body);
-    const { title, content, date, newPhoto, price, location } = sanitizedBody;
+    const { title, content, date, price, location } = sanitizedBody;
+
     if (existingAds) {
       (existingAds.title = title),
         (existingAds.content = content),
@@ -101,18 +110,26 @@ exports.edit = async (req, res) => {
         (existingAds.price = price),
         (existingAds.location = location);
 
-      if (newPhoto) {
-        const fileType = await getImageFileType(newPhoto);
+      if (req.file) {
+        const fileType = req.file
+          ? await getImageFileType(req.file)
+          : 'unknown';
         if (['image/png', 'image/jpeg', 'image/gif'].includes(fileType)) {
           const filePath = path.join(
             __dirname,
             '../public/uploads',
             existingAds.photo
           );
+          existingAds.photo = req.file.filename;
           fs.unlinkSync(filePath);
-          existingAds.photo = newPhoto;
         } else {
-          res.status(400).send({ message: 'Bad request' });
+          const filePath = path.join(
+            __dirname,
+            '../public/uploads',
+            req.file.filename
+          );
+          fs.unlinkSync(filePath);
+          return res.status(400).send({ message: 'Bad request' });
         }
       }
       await existingAds.save();
@@ -121,20 +138,24 @@ exports.edit = async (req, res) => {
       res.status(404).json({ message: 'Ads not found' });
     }
   } catch (err) {
-    res.status(500).json({ message: err });
+    const filePath = path.join(__dirname, '../public/uploads', newPhoto);
+    fs.unlinkSync(filePath);
+    res.status(500).json({ message: err.message });
   }
 };
 
 exports.delete = async (req, res) => {
   try {
-    const ads = await Ads.findById(req.param.id).populate('user');
+    const ads = await Ads.findById(req.params.id);
     if (!ads) {
       res.status(404).json({ message: 'Ads not found' });
     } else {
-      await Ads.deleteOne({ _id: req.param.id });
+      await Ads.deleteOne({ _id: req.params.id });
+      const filePath = path.join(__dirname, '../public/uploads', ads.photo);
+      fs.unlinkSync(filePath);
     }
     res.json(ads);
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.message });
   }
 };

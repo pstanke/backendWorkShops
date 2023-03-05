@@ -22,6 +22,14 @@ exports.register = async (req, res) => {
     ) {
       const userWithLogin = await User.findOne({ login });
       if (userWithLogin) {
+        if (req.file) {
+          const filePath = path.join(
+            __dirname,
+            '../public/uploads',
+            req.file.filename
+          );
+          fs.unlinkSync(filePath);
+        }
         return res.status(409).json({ message: 'User already exists' });
       }
       const user = await User.create({
@@ -40,7 +48,7 @@ exports.register = async (req, res) => {
         );
         fs.unlinkSync(filePath);
       }
-      res.status(400).send({ message: 'Bad request' });
+      return res.status(400).send({ message: 'Bad request' });
     }
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -62,12 +70,14 @@ exports.login = async (req, res) => {
         res.status(400).json({ message: 'Login or password are incorrect' });
       } else {
         if (bcrypt.compareSync(password, user.password)) {
-          const userId = user.id;
-          req.session.user = userId;
-          console.log(req.session.user);
-          res
-            .status(200)
-            .send({ message: user.login + ' logged in successfully' });
+          req.session.user = {
+            login: user.login,
+            avatar: user.avatar,
+            phone: user.phone,
+            _id: user._id,
+          };
+
+          res.status(200).send(req.session.user);
         } else {
           res.status(400).json({ message: 'Login or password are incorrect' });
         }
@@ -76,7 +86,7 @@ exports.login = async (req, res) => {
       res.status(400).send({ message: 'Bad request' });
     }
   } catch (err) {
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: err.message });
   }
 };
 
