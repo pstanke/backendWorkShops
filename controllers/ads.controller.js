@@ -87,12 +87,6 @@ exports.create = async (req, res) => {
       return res.status(400).send({ message: 'Bad request' });
     }
   } catch (error) {
-    const filePath = path.join(
-      __dirname,
-      '../public/uploads',
-      req.file.filename
-    );
-    fs.unlinkSync(filePath);
     res.status(500).json(error.message);
   }
 };
@@ -138,8 +132,6 @@ exports.edit = async (req, res) => {
       res.status(404).json({ message: 'Ads not found' });
     }
   } catch (err) {
-    const filePath = path.join(__dirname, '../public/uploads', newPhoto);
-    fs.unlinkSync(filePath);
     res.status(500).json({ message: err.message });
   }
 };
