@@ -1,10 +1,17 @@
 import { useState } from 'react';
-import { Alert, Button, FloatingLabel, Form, Spinner } from 'react-bootstrap';
+import { Alert, Button, Form, Spinner } from 'react-bootstrap';
 import { useDispatch } from 'react-redux';
-import { API_URL } from '../../../config';
+import { API_URL, IMGS_URL } from '../../../config';
 import { loadAdsRequest } from '../../../redux/adsRedux';
 import { useForm } from 'react-hook-form';
-export const AdForm = ({ method, URL, actionText, ...props }) => {
+export const AdForm = ({
+  method,
+  URL,
+  actionText,
+  requireFile,
+  editFile,
+  ...props
+}) => {
   const [title, setTitle] = useState(props.title || '');
   const [content, setContent] = useState(props.content || '');
   const [date, setDate] = useState(props.date || '');
@@ -12,9 +19,7 @@ export const AdForm = ({ method, URL, actionText, ...props }) => {
   const [price, setPrice] = useState(props.price || '');
   const [location, setLocation] = useState(props.location || '');
   const [status, setStatus] = useState(null); //loading, success, serverError, clientError
-
-  const [contentError, setContentError] = useState(false);
-  const [dateError, setDateError] = useState(false);
+  const [clientErrorMessage, setClientErrorMessage] = useState(null);
 
   const dispatch = useDispatch();
 
@@ -25,14 +30,7 @@ export const AdForm = ({ method, URL, actionText, ...props }) => {
   } = useForm();
 
   const handleSubmit = () => {
-    setContentError(!content);
-    setDateError(!date);
-    if (
-      content &&
-      content !== '<p><br></p>' &&
-      20 < content.length < 1000 &&
-      date
-    ) {
+    if (content !== '<p><br></p>') {
       const fd = new FormData();
       fd.append('title', title);
       fd.append('content', content);
@@ -48,11 +46,14 @@ export const AdForm = ({ method, URL, actionText, ...props }) => {
       setStatus('loading');
       fetch(`${API_URL}${URL}`, options)
         .then((res) => {
-          if (res.status === 200) {
+          if (res.ok) {
             setStatus('success');
             dispatch(loadAdsRequest());
           } else {
-            setStatus('clientError');
+            res.text().then((errorMessage) => {
+              setClientErrorMessage(errorMessage);
+              setStatus('clientError');
+            });
           }
         })
         .catch((err) => {
@@ -80,10 +81,7 @@ export const AdForm = ({ method, URL, actionText, ...props }) => {
       {status === 'clientError' && (
         <Alert variant='warning'>
           <Alert.Heading>There is a problem with provided data</Alert.Heading>
-          <p>
-            A photo is required, it should weigh <strong>less than 2MB</strong>
-            and be in jpeg, gif or png format.
-          </p>
+          <p>{clientErrorMessage}</p>
         </Alert>
       )}
 
@@ -117,32 +115,39 @@ export const AdForm = ({ method, URL, actionText, ...props }) => {
           </small>
         )}
       </Form.Group>
+
       <Form.Group className='mb-3' controlId='formContent'>
         <Form.Label>Content</Form.Label>
-        <FloatingLabel>
-          <Form.Control
-            as='textarea'
-            style={{ height: '100px' }}
-            placeholder='Enter content'
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-          />
-          {contentError && (
-            <small className='d-block form-text text-danger mt-2'>
-              This filed is required (min.20)(max.1000)
-            </small>
-          )}
-        </FloatingLabel>
+
+        <Form.Control
+          {...register('content', {
+            required: true,
+            minLength: 20,
+            maxLength: 1000,
+          })}
+          as='textarea'
+          style={{ height: '100px' }}
+          placeholder='Enter content'
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+        />
+
+        {errors.content && (
+          <small className='d-block form-text text-danger mt-2'>
+            This filed is required (min.20)(max.1000)
+          </small>
+        )}
       </Form.Group>
       <Form.Group className='mb-3' controlId='formDate'>
         <Form.Label>Date</Form.Label>
         <Form.Control
+          {...register('date', { required: true })}
           type='date'
           placeholder='Enter date'
           value={date}
           onChange={(e) => setDate(e.target.value)}
         />
-        {dateError && (
+        {errors.date && (
           <small className='d-block form-text text-danger mt-2'>
             This filed is required
           </small>
@@ -150,11 +155,24 @@ export const AdForm = ({ method, URL, actionText, ...props }) => {
       </Form.Group>
       <Form.Group className='mb-3' controlId='formFile'>
         <Form.Label>Photo</Form.Label>
-
+        {editFile && (
+          <img
+            className='m-2'
+            style={{ height: '150px' }}
+            alt={props.title}
+            src={IMGS_URL + props.photo}
+          />
+        )}
         <Form.Control
+          {...register('photo', { required: requireFile ? true : false })}
           type='file'
           onChange={(e) => setPhoto(e.target.files[0])}
         />
+        {errors.photo && (
+          <small className='d-block form-text text-danger mt-2'>
+            File is required
+          </small>
+        )}
       </Form.Group>
       <Form.Group className='mb-3' controlId='formPrice'>
         <Form.Label>Price</Form.Label>
@@ -165,7 +183,7 @@ export const AdForm = ({ method, URL, actionText, ...props }) => {
           value={price}
           onChange={(e) => setPrice(e.target.value)}
         />
-        {errors.location && (
+        {errors.price && (
           <small className='d-block form-text text-danger mt-2'>
             This field is required
           </small>

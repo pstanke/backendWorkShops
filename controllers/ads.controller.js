@@ -48,22 +48,18 @@ exports.create = async (req, res) => {
     const sanitizedBody = sanitize(req.body);
     const { title, content, date, price, location } = sanitizedBody;
     const fileType = req.file ? await getImageFileType(req.file) : 'unknown';
-    if (
-      title &&
-      typeof title === 'string' &&
-      title.length < 50 &&
-      content &&
-      typeof content === 'string' &&
-      content.length < 1000 &&
-      date &&
-      typeof date === 'string' &&
-      price &&
-      typeof price === 'string' &&
-      location &&
-      typeof location === 'string' &&
-      req.file &&
-      ['image/png', 'image/jpeg', 'image/gif'].includes(fileType)
-    ) {
+
+    if (req.file && req.file.size > 2097152) {
+      const filePath = path.join(
+        __dirname,
+        '../public/uploads',
+        req.file.filename
+      );
+      fs.unlinkSync(filePath);
+      return res.status(400).send('File size cannot exceed 2MB');
+    }
+
+    if (['image/png', 'image/jpeg', 'image/gif'].includes(fileType)) {
       const newAds = new Ads({
         title,
         content,
@@ -73,9 +69,19 @@ exports.create = async (req, res) => {
         location,
         user: req.session.user._id,
       });
-      await newAds.save();
-
-      res.json({ message: 'OK' });
+      const validationError = newAds.validateSync();
+      if (validationError) {
+        const filePath = path.join(
+          __dirname,
+          '../public/uploads',
+          req.file.filename
+        );
+        fs.unlinkSync(filePath);
+        return res.status(400).send(validationError.message);
+      } else {
+        await newAds.save();
+        res.json({ message: 'OK' });
+      }
     } else {
       const filePath = path.join(
         __dirname,
@@ -83,8 +89,9 @@ exports.create = async (req, res) => {
         req.file.filename
       );
       fs.unlinkSync(filePath);
-
-      return res.status(400).send({ message: 'Bad request' });
+      return res
+        .status(400)
+        .send('Invalid file type, only png, gif and jpeg are allowed');
     }
   } catch (error) {
     res.status(500).json(error.message);

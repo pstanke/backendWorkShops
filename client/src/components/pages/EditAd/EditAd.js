@@ -25,6 +25,7 @@ export const EditAd = () => {
       photo={ad.photo}
       price={ad.price}
       location={ad.location}
+      editFile={true}
     />
   );
 };
