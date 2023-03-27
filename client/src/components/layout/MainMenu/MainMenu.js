@@ -47,21 +47,7 @@ export const MainMenu = () => {
           </Nav.Link>
         </Nav>
 
-        <Nav className='m-auto d-flex'>
-          <Form className='d-flex mx-2' onSubmit={search}>
-            <Form.Control
-              type='search'
-              placeholder='Search'
-              value={searchValue}
-              onChange={(e) => setSearchInput(e.target.value)}
-            />
-            <Button variant='outline-danger' type='submit' className='ml-1'>
-              Search
-            </Button>
-          </Form>
-        </Nav>
-
-        <Nav className='ml-auto'>
+        <Nav className='ml-auto align-items-center'>
           <FontAwesomeIcon
             icon={user ? faUser : faUserRegular}
             size='2x'
@@ -97,6 +83,21 @@ export const MainMenu = () => {
           )}
         </Nav>
       </Navbar>
+
+      <div className={styles.searchBar}>
+        <Form className='d-flex mx-2' onSubmit={search}>
+          <Form.Control
+            type='search'
+            placeholder='Search'
+            value={searchValue}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+          <Button variant='outline-danger' type='submit' className='ml-1'>
+            Search
+          </Button>
+        </Form>
+      </div>
+
       <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'>
         <path
           fill='#c00118'
